@@ -38,7 +38,7 @@ if type_choice == "T型":
     st.subheader(f"🖼️ {type_choice} の抵抗配置（中央分岐）")
     # 中央揃えを強調したレイアウト
     st.code(f"""
-    [IN] ---- R1({r_series:.2f}Ω) -------+---- R1({r_series:.2f}Ω) ---- [OUT]
+    [IN] ---- R1({r_series:.2f}Ω) -------+---- R1({r_series:.2f}Ω) -------- [OUT]
                                 |
                               R2({r_shunt:.2f}Ω)
                                 |
