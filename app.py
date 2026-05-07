@@ -1,8 +1,10 @@
 import streamlit as st
 import math
+import numpy as np
+import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw, ImageFont
 
-st.set_page_config(page_title="アッテネータ計算ツール", layout="centered")
+st.set_page_config(page_title="アッテネータ計算", layout="centered")
 
 # --- スタイル設定 ---
 st.markdown("""
@@ -14,108 +16,110 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown('<p class="credit">開発/制作：緒方</p>', unsafe_allow_html=True)
-st.title("📡 アッテネータ(減衰器)計算ツール")
+st.title("📡 アッテネータ計算・周波数特性ガイド")
 
-# --- 入力セクション ---
-with st.sidebar:
-    st.header("⚙️ 設計パラメータ")
-    type_choice = st.radio("回路形式を選択", ["T型", "π(パイ)型"])
-    z0 = st.number_input("インピーダンス Z0 (Ω)", value=50.0, step=25.0)
-    db_val = st.number_input("減衰量 (dB)", value=6.0, step=1.0, format="%.1f")
+# --- 1. メイン入力エリア ---
+st.subheader("⚙️ 設計パラメータ入力")
+col_a, col_b, col_c = st.columns(3)
+
+with col_a:
+    type_choice = st.radio("回路形式", ["T型", "π型"], horizontal=True)
+with col_b:
+    z0 = st.number_input("インピーダンス (Ω)", value=50.0, step=25.0)
+with col_c:
+    db_val = st.number_input("減衰量 (dB)", value=6.0, step=0.1, format="%.1f")
 
 # --- 計算ロジック ---
-# 電圧比 k = 10^(dB/20)
 k = 10**(db_val / 20.0)
-
 if type_choice == "T型":
-    # R1: 直列抵抗, R2: 並列抵抗
     r1 = z0 * ((k - 1) / (k + 1))
     r2 = z0 * (2 * k / (k**2 - 1))
-    labels = {"R1": f"{r1:.2f} Ω", "R2": f"{r2:.2f} Ω"}
+    res_labels = {"R_series": f"{r1:.2f} Ω", "R_shunt": f"{r2:.2f} Ω"}
 else:
-    # π型 R1: 並列抵抗, R2: 直列抵抗
     r1 = z0 * ((k + 1) / (k - 1))
     r2 = z0 * ((k**2 - 1) / (2 * k))
-    labels = {"R1": f"{r1:.2f} Ω", "R2": f"{r2:.2f} Ω"}
+    res_labels = {"R_shunt": f"{r1:.2f} Ω", "R_series": f"{r2:.2f} Ω"}
 
-# --- 図解の生成 ---
-width, height = 800, 400
+# --- 2. 回路図表示 (動的生成) ---
+st.markdown("---")
+st.subheader(f"🖼️ {type_choice} 回路構成図")
+
+width, height = 800, 300
 image = Image.new('RGB', (width, height), '#f9f9f9')
 draw = ImageDraw.Draw(image)
 try:
     font = ImageFont.truetype("arial.ttf", 35)
-    font_sm = ImageFont.truetype("arial.ttf", 25)
 except:
     font = ImageFont.load_default()
-    font_sm = ImageFont.load_default()
 
-line_c = '#333'
-res_c = '#D2691E'
-text_c = '#1E90FF'
-
-# 回路描画
-x_in, x_out = 100, 700
-y_top, y_bot = 120, 320
-
-# 基本の線
-draw.line((x_in, y_bot, x_out, y_bot), fill=line_c, width=3) # 下ライン(GND)
-draw.text((x_in-60, y_top-20), "IN", fill=line_c, font=font)
-draw.text((x_out+10, y_top-20), "OUT", fill=line_c, font=font)
+lc, rc = '#333', '#D2691E'
+x_in, x_out, y_t, y_b = 100, 700, 80, 250
+draw.line((x_in, y_b, x_out, y_b), fill=lc, width=3)
 
 if type_choice == "T型":
-    # T型：直列2つ(R1), 並列1つ(R2)
-    draw.line((x_in, y_top, 250, y_top), fill=line_c, width=3)
-    draw.rectangle((250, y_top-20, 350, y_top+20), fill=res_c) # R1左
-    draw.line((350, y_top, 450, y_top), fill=line_c, width=3)
-    draw.rectangle((450, y_top-20, 550, y_top+20), fill=res_c) # R1右
-    draw.line((550, y_top, x_out, y_top), fill=line_c, width=3)
-    
-    draw.line((400, y_top, 400, 180), fill=line_c, width=3)
-    draw.rectangle((380, 180, 420, 260), fill=res_c) # R2
-    draw.line((400, 260, 400, y_bot), fill=line_c, width=3)
-    
-    draw.text((280, y_top-60), "R1", fill=line_c, font=font)
-    draw.text((480, y_top-60), "R1", fill=line_c, font=font)
-    draw.text((430, 200), "R2", fill=line_c, font=font)
+    # R1-R2-R1
+    draw.rectangle((250, y_t-20, 350, y_t+20), fill=rc) # R1
+    draw.rectangle((450, y_t-20, 550, y_t+20), fill=rc) # R1
+    draw.rectangle((380, 140, 420, 210), fill=rc) # R2
+    draw.line((x_in, y_t, 250, y_t), fill=lc, width=3)
+    draw.line((350, y_t, 450, y_t), fill=lc, width=3)
+    draw.line((550, y_t, x_out, y_t), fill=lc, width=3)
+    draw.line((400, y_t, 400, 140), fill=lc, width=3)
+    draw.line((400, 210, 400, y_b), fill=lc, width=3)
+    draw.text((280, y_t-60), "R1", fill=lc, font=font)
+    draw.text((480, y_t-60), "R1", fill=lc, font=font)
+    draw.text((430, 160), "R2", fill=lc, font=font)
 else:
-    # π型：並列2つ(R1), 直列1つ(R2)
-    draw.line((x_in, y_top, 250, y_top), fill=line_c, width=3)
-    draw.rectangle((350, y_top-20, 450, y_top+20), fill=res_c) # R2(直列)
-    draw.line((550, y_top, x_out, y_top), fill=line_c, width=3)
-    
-    # 左R1
-    draw.line((250, y_top, 250, 180), fill=line_c, width=3)
-    draw.rectangle((230, 180, 270, 260), fill=res_c)
-    draw.line((250, 260, 250, y_bot), fill=line_c, width=3)
-    
-    # 右R1
-    draw.line((550, y_top, 550, 180), fill=line_c, width=3)
-    draw.rectangle((530, 180, 570, 260), fill=res_c)
-    draw.line((550, 260, 550, y_bot), fill=line_c, width=3)
-    
-    draw.line((250, y_top, 350, y_top), fill=line_c, width=3)
-    draw.line((450, y_top, 550, y_top), fill=line_c, width=3)
-
-    draw.text((380, y_top-60), "R2", fill=line_c, font=font)
-    draw.text((280, 200), "R1", fill=line_c, font=font)
-    draw.text((580, 200), "R1", fill=line_c, font=font)
+    # R1-R2-R1 (pi)
+    draw.rectangle((350, y_t-20, 450, y_t+20), fill=rc) # R2
+    draw.rectangle((230, 140, 270, 210), fill=rc) # R1
+    draw.rectangle((530, 140, 570, 210), fill=rc) # R1
+    draw.line((x_in, y_t, 350, y_t), fill=lc, width=3)
+    draw.line((450, y_t, x_out, y_t), fill=lc, width=3)
+    draw.line((250, y_t, 250, 140), fill=lc, width=3)
+    draw.line((250, 210, 250, y_b), fill=lc, width=3)
+    draw.line((550, y_t, 550, 140), fill=lc, width=3)
+    draw.line((550, 210, 550, y_b), fill=lc, width=3)
+    draw.text((380, y_t-60), "R2", fill=lc, font=font)
+    draw.text((180, 160), "R1", fill=lc, font=font)
+    draw.text((580, 160), "R1", fill=lc, font=font)
 
 st.image(image, use_column_width=True)
 
-# --- 結果表示 ---
+# --- 3. 結果表示 ---
 st.markdown('<div class="result-box">', unsafe_allow_html=True)
-st.subheader(f"📊 {type_choice} 計算結果 ({db_val} dB / {z0} Ω)")
 c1, c2 = st.columns(2)
 if type_choice == "T型":
-    c1.metric("直列抵抗 R1", labels["R1"])
-    c2.metric("並列抵抗 R2", labels["R2"])
-    st.write("※入力側と出力側にそれぞれR1を配置してください。")
+    c1.metric("直列抵抗 R1", res_labels["R_series"])
+    c2.metric("並列抵抗 R2", res_labels["R_shunt"])
 else:
-    c1.metric("並列抵抗 R1", labels["R1"])
-    c2.metric("直列抵抗 R2", labels["R2"])
-    st.write("※入力側と出力側にそれぞれR1を配置してください。")
+    c1.metric("並列抵抗 R1", res_labels["R_shunt"])
+    c2.metric("直列抵抗 R2", res_labels["R_series"])
 st.markdown('</div>', unsafe_allow_html=True)
 
+# --- 4. 周波数特性の解説 ---
 st.markdown("---")
-st.caption("【周波数についての注意】")
-st.caption("※この計算は純抵抗によるものです。高周波（GHz帯など）では抵抗のリード線のインダクタンスや浮遊容量が影響するため、チップ抵抗を使用し、基板設計に注意してください。")
+st.subheader("📉 周波数特性と高周波の注意点")
+st.write("理想的な抵抗器であれば周波数に関わらず減衰量は一定ですが、実際の現場（特に高周波）では以下の影響で特性が悪化します。")
+
+# 概念グラフの表示
+fig, ax = plt.subplots(figsize=(8, 4))
+f = np.logspace(0, 9, 100) # 1Hz to 1GHz
+loss = -np.ones(100) * db_val
+# 高域での悪化をシミュレーション
+loss_actual = loss - (f/1e8)**1.5 
+ax.semilogx(f, loss, '--', label="理想値", color="gray")
+ax.semilogx(f, loss_actual, label="実際の特性（例）", color="red")
+ax.set_xlabel("Frequency [Hz]")
+ax.set_ylabel("Attenuation [dB]")
+ax.set_ylim(-db_val-10, 0)
+ax.grid(True, which="both", ls="-", alpha=0.5)
+ax.legend()
+st.pyplot(fig)
+
+st.info("""
+**なぜ高域でズレるのか？**
+1. **寄生インダクタンス**: 抵抗のリード線が「コイル」として働き、高い周波数を通しにくくします。
+2. **寄生容量**: 抵抗の両端が「コンデンサ」として働き、高い周波数をバイパスさせてしまいます。
+3. **対策**: 70MHzを超えるような現場では、リード線のない**チップ抵抗**を使用し、できるだけ配線を短く作るのがコツです。
+""")
