@@ -51,7 +51,7 @@ else:
     
     st.subheader(f"🖼️ {type_choice} の抵抗配置")
     st.code(f"""
-    [IN] -----------+---- R2({r_series:.2f}Ω) ----+----------- [OUT]
+    [IN] -----------+---- R2({r_series:.2f}Ω) ---------+----------- [OUT]
                     |                             |
                   R1({r_shunt:.2f}Ω)               R1({r_shunt:.2f}Ω)
                     |                             |
