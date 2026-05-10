@@ -47,9 +47,9 @@ if type_choice == "T型":
     st.subheader(f"🖼️ {type_choice} の抵抗配置")
     st.code(f"""
     [IN] ---- R1({r_series:.2f}Ω) -------+---- R1({r_series:.2f}Ω) ------- [OUT]
-                                 |
-                               R2({r_shunt:.2f}Ω)
-                                 |
+                              |
+                            R2({r_shunt:.2f}Ω)
+                                |
     [GND] ----------------------+----------------------- [GND]
     """, language="text")
 else:
