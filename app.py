@@ -107,7 +107,7 @@ st.line_chart(chart_data, x="周波数(MHz)", y=["実際の減衰量", "理想�
 st.markdown("---")
 col1, col2, col3 = st.columns([1, 1, 1])
 with col2:
-    st.link_button("🏠\n\n戻る", "https://menue3-pkwzfkwnoxnnuljkqg7mdt.streamlit.app/", use_container_width=True)
+    st.link_button("🏠\n\n戻る", "https://7fjndw39dicdzckugyepb2.streamlit.app/", use_container_width=True)
 
 st.markdown("""
     <style>
